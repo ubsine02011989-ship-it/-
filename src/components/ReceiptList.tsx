@@ -662,6 +662,15 @@ export default function ReceiptList({
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5" id={`actions-${item.id}`}>
                           <button
+                            id={`btn-print-${item.id}`}
+                            onClick={() => onOpenPrintPreview([item])}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-emerald-600 hover:text-emerald-750 bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/30 rounded-lg transition"
+                            title="พิมพ์ใบงาน PDF"
+                          >
+                            <Printer size={13} />
+                            <span>พิมพ์ใบงาน</span>
+                          </button>
+                          <button
                             id={`btn-edit-${item.id}`}
                             onClick={() => onEdit(item)}
                             className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 rounded-lg transition"
@@ -722,6 +731,15 @@ export default function ReceiptList({
                       </div>
 
                       <div className="flex items-center gap-1.5">
+                        <button
+                          id={`btn-mob-print-${item.id}`}
+                          onClick={() => onOpenPrintPreview([item])}
+                          className="inline-flex items-center gap-0.5 px-2 py-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 rounded-lg border border-emerald-100 dark:border-emerald-900/30 transition"
+                          title="พิมพ์ใบงาน PDF"
+                        >
+                          <Printer size={11} />
+                          <span>พิมพ์ใบงาน</span>
+                        </button>
                         <button
                           id={`btn-mob-edit-${item.id}`}
                           onClick={() => onEdit(item)}

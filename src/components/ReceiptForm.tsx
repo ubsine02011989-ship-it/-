@@ -265,7 +265,7 @@ export default function ReceiptForm({ editItem, onSave, onCancel }: ReceiptFormP
             {editItem ? 'แก้ไขรายการรับของ' : 'บันทึกรายการรับของราคา'}
           </h3>
           <p className="text-xs text-slate-400 mt-1" id="form-subtitle">
-            กรอกรายละเอียดข้อมูลการรับของ ราคาขาย และสถานะงานใบสั่งงาน
+            กรอกรายละเอียดข้อมูลการรับของ ราคาขาย และสถานะงานใบงาน
           </p>
         </div>
         <button 
