@@ -1,0 +1,8 @@
+{
+  "name": "รับจ่าย สาณูฯ",
+  "description": "ระบบบันทึกรับของและคำนวณราคาอัตโนมัติ พร้อมแดชบอร์ดสรุปยอดรายเดือน ส่งออก Excel/PDF และแจ้งเตือนสถานะใบงานแบบออฟไลน์",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
