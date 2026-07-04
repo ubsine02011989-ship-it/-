@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && userId == request.auth.uid;
+    }
+    
+    function isValidReceiptItem(data) {
+      return data.keys().hasAll(['id', 'name', 'category', 'price', 'quantity', 'totalPrice', 'receiveDate', 'isUsed', 'isWorkOrderIssued', 'userId'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 500
+        && data.category is string && data.category.size() <= 100
+        && data.price is number && data.price >= 0
+        && data.quantity is number && data.quantity >= 0
+        && data.totalPrice is number && data.totalPrice >= 0
+        && data.receiveDate is string && data.receiveDate.size() <= 30
+        && data.isUsed is bool
+        && data.isWorkOrderIssued is bool
+        && data.userId is string && data.userId == request.auth.uid
+        && (!('usedDate' in data) || data.usedDate == null || (data.usedDate is string && data.usedDate.size() <= 30))
+        && (!('usedQuantity' in data) || data.usedQuantity == null || (data.usedQuantity is number && data.usedQuantity >= 0))
+        && (!('withdrawerName' in data) || data.withdrawerName == null || (data.withdrawerName is string && data.withdrawerName.size() <= 200))
+        && (!('usagePurpose' in data) || data.usagePurpose == null || (data.usagePurpose is string && data.usagePurpose.size() <= 500))
+        && (!('usedProject' in data) || data.usedProject == null || (data.usedProject is string && data.usedProject.size() <= 200))
+        && (!('workOrderNumber' in data) || data.workOrderNumber == null || (data.workOrderNumber is string && data.workOrderNumber.size() <= 100))
+        && (!('workOrderDate' in data) || data.workOrderDate == null || (data.workOrderDate is string && data.workOrderDate.size() <= 30))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
+        && (!('project' in data) || data.project == null || (data.project is string && data.project.size() <= 200))
+        && (!('workOrderPrice' in data) || data.workOrderPrice == null || (data.workOrderPrice is number && data.workOrderPrice >= 0))
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1048576));
+    }
+    
+    function isValidNotification(data) {
+      return data.keys().hasAll(['id', 'itemId', 'itemName', 'type', 'status', 'message', 'timestamp', 'userId'])
+        && data.keys().size() == 8
+        && data.id is string && data.id.size() <= 128
+        && data.itemId is string && data.itemId.size() <= 128
+        && data.itemName is string && data.itemName.size() <= 500
+        && data.type is string && (data.type == 'usage' || data.type == 'work_order')
+        && data.status is bool
+        && data.message is string && data.message.size() <= 1000
+        && data.timestamp is string && data.timestamp.size() <= 50
+        && data.userId is string && data.userId == request.auth.uid;
+    }
+    
+    match /receipts/{receiptId} {
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidId(receiptId) 
+        && receiptId == request.resource.data.id
+        && isValidReceiptItem(request.resource.data);
+        
+      allow update: if isSignedIn() 
+        && isValidId(receiptId) 
+        && isOwner(resource.data.userId)
+        && isValidReceiptItem(request.resource.data)
+        && request.resource.data.userId == resource.data.userId;
+        
+      allow delete: if isSignedIn() 
+        && isValidId(receiptId) 
+        && isOwner(resource.data.userId);
+    }
+    
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidId(notificationId) 
+        && notificationId == request.resource.data.id
+        && isValidNotification(request.resource.data);
+        
+      allow update: if isSignedIn() 
+        && isValidId(notificationId) 
+        && isOwner(resource.data.userId)
+        && isValidNotification(request.resource.data)
+        && request.resource.data.userId == resource.data.userId;
+        
+      allow delete: if isSignedIn() 
+        && isValidId(notificationId) 
+        && isOwner(resource.data.userId);
+    }
+  }
+}

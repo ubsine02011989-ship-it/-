@@ -64,6 +64,24 @@ export default function ReceiptList({
   const [usedFilter, setUsedFilter] = useState('ทั้งหมด'); // ทั้งหมด, นำไปใช้แล้ว, ยังไม่ได้นำไปใช้
   const [workOrderFilter, setWorkOrderFilter] = useState('ทั้งหมด'); // ทั้งหมด, ออกใบงานแล้ว, ยังไม่ออกใบงาน
   
+  // Export Excel Modal states
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportItems, setExportItems] = useState<ReceiptItem[]>([]);
+  const [selectedExportProject, setSelectedExportProject] = useState<string>('');
+
+  // Get all unique projects in the export list
+  const exportProjectsList = useMemo(() => {
+    const list = new Set(exportItems.map(item => item.project?.trim() || 'ทั่วไป / ไม่ระบุโครงการ'));
+    return Array.from(list);
+  }, [exportItems]);
+
+  // Sync selectedExportProject when exportItems changes
+  React.useEffect(() => {
+    if (exportProjectsList.length > 0) {
+      setSelectedExportProject(exportProjectsList[0]);
+    }
+  }, [exportItems, exportProjectsList]);
+
   // Disbursement / Withdrawal modal state
   const [disburseItem, setDisburseItem] = useState<ReceiptItem | null>(null);
   const [disburseQty, setDisburseQty] = useState<number>(1);
@@ -252,7 +270,39 @@ export default function ReceiptList({
       alert('ไม่มีข้อมูลที่จะส่งออก');
       return;
     }
-    exportToCSV(itemsToExport, `receipt_report_${new Date().toISOString().substring(0, 10)}.csv`);
+    setExportItems(itemsToExport);
+    setShowExportModal(true);
+  };
+
+  // Helper to handle single combined export
+  const handleExportCombined = () => {
+    const sortedItems = [...exportItems].sort((a, b) => {
+      const projA = a.project?.trim() || 'ทั่วไป / ไม่ระบุโครงการ';
+      const projB = b.project?.trim() || 'ทั่วไป / ไม่ระบุโครงการ';
+      return projA.localeCompare(projB, 'th');
+    });
+    exportToCSV(sortedItems, `รายงานรับของ_รวมทุกโครงการ_${new Date().toISOString().substring(0, 10)}.csv`);
+    setShowExportModal(false);
+  };
+
+  // Helper to handle multiple separated file exports
+  const handleExportSeparated = () => {
+    exportProjectsList.forEach((proj, index) => {
+      const projItems = exportItems.filter(item => (item.project?.trim() || 'ทั่วไป / ไม่ระบุโครงการ') === proj);
+      const cleanProjName = proj.replace(/[\/\\?%*:|"<>\s]/g, '_');
+      setTimeout(() => {
+        exportToCSV(projItems, `รายงานรับของ_โครงการ_${cleanProjName}_${new Date().toISOString().substring(0, 10)}.csv`);
+      }, index * 250); // slight delay to prevent popup blocker
+    });
+    setShowExportModal(false);
+  };
+
+  // Helper to handle specific project export
+  const handleExportSpecific = () => {
+    const projItems = exportItems.filter(item => (item.project?.trim() || 'ทั่วไป / ไม่ระบุโครงการ') === selectedExportProject);
+    const cleanProjName = selectedExportProject.replace(/[\/\\?%*:|"<>\s]/g, '_');
+    exportToCSV(projItems, `รายงานรับของ_โครงการ_${cleanProjName}_${new Date().toISOString().substring(0, 10)}.csv`);
+    setShowExportModal(false);
   };
 
   // Batch Print PDF
@@ -1089,6 +1139,141 @@ export default function ReceiptList({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ส่งออก Excel แยกโครงการ (Excel Export Options Modal) */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in" id="export-excel-modal-container">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-slide-down" id="export-excel-modal-card">
+            {/* Header */}
+            <div className="bg-emerald-600 text-white p-5 flex justify-between items-center" id="export-excel-modal-header">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-white/10 rounded-lg">
+                  <FileSpreadsheet size={18} />
+                </span>
+                <div>
+                  <h3 className="font-sans font-bold text-sm">ตัวเลือกการส่งออก Excel (.csv)</h3>
+                  <p className="text-[10px] text-emerald-100 mt-0.5">เลือกรูปแบบการจัดการข้อมูลตามแผนกหรือโครงการที่ระบุ</p>
+                </div>
+              </div>
+              <button 
+                id="btn-close-export-excel-modal"
+                onClick={() => setShowExportModal(false)}
+                className="p-1.5 hover:bg-white/10 rounded-lg text-white/80 hover:text-white transition cursor-pointer"
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="p-6 space-y-5" id="export-excel-modal-body">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                <p><span className="font-semibold text-slate-800 dark:text-white text-sm">ข้อมูลที่กำลังส่งออก:</span>
+                <span className="ml-1 text-slate-500 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  {exportItems.length} รายการ
+                </span></p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  ระบบตรวจพบแผนก/โครงการทั้งหมด <span className="font-semibold text-slate-700 dark:text-slate-300">{exportProjectsList.length} รายการ</span> ในชุดข้อมูลนี้
+                </p>
+              </div>
+
+              {/* Option 1: Combined Sorted file */}
+              <button
+                type="button"
+                id="btn-export-opt-combined"
+                onClick={handleExportCombined}
+                className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/10 transition group cursor-pointer"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-950/50 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 rounded-lg transition shrink-0">
+                    <FileSpreadsheet size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                      ส่งออกไฟล์เดียว (จัดกลุ่มและเรียงตามโครงการ)
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      ดาวน์โหลดไฟล์ Excel 1 ไฟล์ โดยเรียงแถวข้อมูลจับกลุ่มตามโครงการเพื่อให้เป็นระเบียบในการนำไปใช้งานต่อ
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 2: Split multiple files */}
+              <button
+                type="button"
+                id="btn-export-opt-separated"
+                onClick={handleExportSeparated}
+                className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50/20 dark:hover:bg-emerald-950/10 transition group cursor-pointer"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-950/50 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 rounded-lg transition shrink-0">
+                    <SlidersHorizontal size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                      ส่งออกแยกไฟล์ตามโครงการ ({exportProjectsList.length} ไฟล์)
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      ดาวน์โหลดเป็นไฟล์แยกส่วนรายโครงการ (แยกไฟล์อิสระ) โดยระบบจะดาวน์โหลดไฟล์ทั้งหมดให้คุณในครั้งเดียวพร้อมกัน
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Export specific project only */}
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3.5" id="export-opt-specific-panel">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg shrink-0">
+                    <Filter size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800 dark:text-white">
+                      เลือกส่งออกเฉพาะโครงการที่ต้องการ
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      ระบุเลือกโครงการที่ต้องการเพื่อส่งออกข้อมูลชุดเดียวเป็นไฟล์ Excel เฉพาะกิจ
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 items-center pl-11" id="export-opt-specific-controls">
+                  <div className="flex-1">
+                    <select
+                      value={selectedExportProject}
+                      onChange={(e) => setSelectedExportProject(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-xs dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    >
+                      {exportProjectsList.map(proj => (
+                        <option key={proj} value={proj}>{proj}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    id="btn-export-opt-specific-run"
+                    onClick={handleExportSpecific}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl transition text-xs shadow-md shrink-0 cursor-pointer"
+                  >
+                    ดาวน์โหลดโครงการนี้
+                  </button>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800" id="export-excel-modal-footer">
+                <button 
+                  type="button"
+                  id="btn-cancel-export-excel"
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

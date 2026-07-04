@@ -1,0 +1,202 @@
+{
+  "entities": {
+    "ReceiptItem": {
+      "title": "ReceiptItem",
+      "description": "An item recorded in the inventory system with receive status and work order information.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique ID of the receipt item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the item."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the item."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price per unit."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity received."
+        },
+        "totalPrice": {
+          "type": "number",
+          "description": "Total price calculated as price * quantity."
+        },
+        "receiveDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The date the item was received."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "The base64 or URL of the image."
+        },
+        "isUsed": {
+          "type": "boolean",
+          "description": "Whether the item has been disbursed/withdrawn."
+        },
+        "usedDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The date the item was disbursed."
+        },
+        "usedQuantity": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The quantity of items disbursed."
+        },
+        "withdrawerName": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The name of the person who disbursed the item."
+        },
+        "usagePurpose": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The purpose or location where the item is used."
+        },
+        "usedProject": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The project the item is disbursed for."
+        },
+        "isWorkOrderIssued": {
+          "type": "boolean",
+          "description": "Whether a work order has been issued."
+        },
+        "workOrderNumber": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The work order ID if issued."
+        },
+        "workOrderDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The date of the work order."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes."
+        },
+        "project": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The department or project name."
+        },
+        "workOrderPrice": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The price or cost of the work order."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The user ID of the owner."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "category",
+        "price",
+        "quantity",
+        "totalPrice",
+        "receiveDate",
+        "isUsed",
+        "isWorkOrderIssued",
+        "userId"
+      ]
+    },
+    "StatusNotification": {
+      "title": "StatusNotification",
+      "description": "A notification log entry tracking changes to status of receipt items.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique ID of the notification."
+        },
+        "itemId": {
+          "type": "string",
+          "description": "The reference receipt item ID."
+        },
+        "itemName": {
+          "type": "string",
+          "description": "The item name."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "usage",
+            "work_order"
+          ],
+          "description": "The type of log entry: usage or work order."
+        },
+        "status": {
+          "type": "boolean",
+          "description": "The updated status."
+        },
+        "message": {
+          "type": "string",
+          "description": "The log message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date-time string of the event."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The user ID of the owner."
+        }
+      },
+      "required": [
+        "id",
+        "itemId",
+        "itemName",
+        "type",
+        "status",
+        "message",
+        "timestamp",
+        "userId"
+      ]
+    }
+  },
+  "firestore": {
+    "receipts/{receiptId}": {
+      "schema": {
+        "$ref": "#/entities/ReceiptItem"
+      },
+      "description": "Collection of inventory receipt records."
+    },
+    "notifications/{notificationId}": {
+      "schema": {
+        "$ref": "#/entities/StatusNotification"
+      },
+      "description": "Collection of status activity notifications."
+    }
+  }
+}
